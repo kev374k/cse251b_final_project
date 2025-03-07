@@ -18,7 +18,7 @@ Our analysis will focus on evaluating which pretrained models perform best for s
 
 ## Dataset
 
-We will be using the **GoEmotions dataset** from Kaggle ([Chanda, 2021](https://www.kaggle.com/datasets/Chanda_2021)). This dataset consists of **58,009** Reddit comments, each labeled with one of **28 different emotions**.
+We will be using the **GoEmotions dataset** from Kaggle ([Chanda, 2021](https://www.kaggle.com/datasets/debarshichanda/goemotions)). This dataset consists of **58,009** Reddit comments, each labeled with one of **28 different emotions**. Additionally, we will also be using the **Twitter and Reddit Sentimental Analysis Dataset** from Kaggle ([Kumar 2020](https://www.kaggle.com/datasets/cosmos98/twitter-and-reddit-sentimental-analysis-dataset)). This dataset is similar to the previous dataset, but also uses tweets from 2019 with their sentiment labels.
 
 ## Network Architectures
 
