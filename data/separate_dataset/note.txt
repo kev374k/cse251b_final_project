@@ -1,0 +1,3 @@
+# Note
+
+This separate dataset is for Twitter and Reddit data w/labels 1, 0, -1. This is from a separate dataset, so we only use this if we want to, not necessary.
