@@ -1,4 +1,3 @@
-
 from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments
 import pandas as pd
 from datasets import Dataset
@@ -14,12 +13,12 @@ def tokenize_function(examples):
     return tokenizer(examples['text'], padding="max_length", truncation=True)
 
 
-#LOAD TRAIN
+# # # LOAD TRAIN # # #
 df = pd.read_csv('data/train.tsv', sep='\t', header=None)
 df = df.drop(df.columns[2], axis=1)
 
-newrows = []
-for i in range(0, df.shape[0]): #Adds new rows for duplicates
+newrows = [] # ONLY HANDLES ROWS WITH 1 EMOTION. COMMENTED CODE ADDS NEW TRAINING ROWS FOR MULTIPLE EMOTIONS
+for i in range(0, df.shape[0]): 
     if "," in df[1].iloc[i]:
         # currEmotion = df[1].iloc[i].split(",")
         # currText = df[0].iloc[i]
@@ -37,12 +36,12 @@ train_dataset.set_format('torch', columns=['input_ids', 'attention_mask', 'emoti
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=8)
 
 
-#LOAD VAL
+# # # LOAD VALIDATION # # #
 df = pd.read_csv('data/dev.tsv', sep='\t', header=None)
 df = df.drop(df.columns[2], axis=1)
 
-newrows = []
-for i in range(0, df.shape[0]): #Adds new rows for duplicates
+newrows = [] # ONLY HANDLES ROWS WITH 1 EMOTION. COMMENTED CODE ADDS NEW VALIDATION ROWS FOR MULTIPLE EMOTIONS
+for i in range(0, df.shape[0]): # NEED FIND WAY TO HANDLE IF WE DECIDE TO PURSUE. MULTIPLE EMOTIONS COULD CONFUSE THE MODEL IN THIS FORMAT (LIKE THE TESLA CASE PROF MENTIONED)
     if "," in df[1].iloc[i]:
         # currEmotion = df[1].iloc[i].split(",")
         # currText = df[0].iloc[i]
@@ -60,6 +59,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=True, batch_size=8)
 
 
 
+# # # EVAL FUNCTION # # #
 def evaluate(model, dataloader, device):
     model.eval()
     total_correct = 0
@@ -89,6 +89,7 @@ def evaluate(model, dataloader, device):
 
 
 
+# # # MAIN # # #
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=28)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
