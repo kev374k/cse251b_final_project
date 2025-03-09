@@ -88,7 +88,6 @@ def evaluate(model, dataloader, device):
     return accuracy, precision, recall, f1
 
 
-
 # # # MAIN # # #
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=28)
 
