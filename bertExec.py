@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 def tokenize_function(examples):
-    return tokenizer(examples['text'], padding='max_length', truncation=True, max_length=80)
+    return tokenizer(examples['text'], padding='max_length', truncation=True, max_length=65)
 
 
 # # # LOAD TRAIN # # #
