@@ -24,7 +24,8 @@ for i in range(0, df.shape[0]):
         # currText = df[0].iloc[i]
         # for j in currEmotion:
         #     newrows.append([currText, j])
-        pass
+        currEmotion = df[1].iloc[i].split(",") # ADDED TO ACCOUNT FOR FIRST EMOTION IN A LIST TO SEE IF MORE DATA HELPS
+        newrows.append([df[0].iloc[i], int(currEmotion[0])])
     else:
         newrows.append([df[0].iloc[i], int(df[1].iloc[i])])
 
@@ -47,7 +48,8 @@ for i in range(0, df.shape[0]): # NEED FIND WAY TO HANDLE IF WE DECIDE TO PURSUE
         # currText = df[0].iloc[i]
         # for j in currEmotion:
         #     newrows.append([currText, j])
-        pass
+        currEmotion = df[1].iloc[i].split(",") # ADDED TO ACCOUNT FOR FIRST EMOTION IN A LIST TO SEE IF MORE DATA HELPS
+        newrows.append([df[0].iloc[i], int(currEmotion[0])])
     else:
         newrows.append([df[0].iloc[i], int(df[1].iloc[i])])
 
