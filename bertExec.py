@@ -89,6 +89,9 @@ def evaluate(model, dataloader, device):
 
 
 # # # MAIN # # #
+best_accuracy = 0
+best_f1 = 0
+
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=28)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -126,3 +129,13 @@ for epoch in range(3):
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
     print(f"F1 Score: {f1:.4f}")
+    
+    if accuracy > best_accuracy:
+        best_accuracy = accuracy
+        torch.save(model.state_dict(), f'best_accuracy_model.pth')
+        print(f"Saved best accuracy model with accuracy: {best_accuracy:.4f}")
+    
+    if f1 > best_f1:
+        best_f1 = f1
+        torch.save(model.state_dict(), f'best_f1_model.pth')
+        print(f"Saved best F1 model with F1 score: {best_f1:.4f}")
