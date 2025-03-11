@@ -31,6 +31,7 @@ def load_train(tokenize_function):
 
     return train_dataloader
 
+
 # # # LOAD VALIDATION # # #
 def load_val(tokenize_function):
     df = pd.read_csv('data/dev.tsv', sep='\t', header=None)
@@ -56,6 +57,7 @@ def load_val(tokenize_function):
     val_dataloader = DataLoader(val_dataset, shuffle=True, batch_size=8)
 
     return val_dataloader
+
 
 # # # LOAD TEST # # #
 def load_test(tokenize_function):
