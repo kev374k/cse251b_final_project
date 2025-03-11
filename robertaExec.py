@@ -1,21 +1,21 @@
-from transformers import BertForSequenceClassification, BertTokenizer
+from transformers import RobertaForSequenceClassification, RobertaTokenizer
 import torch
 import tqdm
 from dataloader import load_train, load_val, load_test
 from eval import evaluate
 
 
-bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+roberta_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 
-def bert_tokenize_function(examples):
-    return bert_tokenizer(examples['text'], padding='max_length', truncation=True, max_length=80)
+def roberta_tokenize_function(examples):
+    return roberta_tokenizer(examples['text'], padding='max_length', truncation=True, max_length=80)
 
 # # # MAIN # # #
 def main():
     best_accuracy = 0
     best_f1 = 0
 
-    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=28)
+    model = RobertaForSequenceClassification.from_pretrained('roberta-base', num_labels=28)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
@@ -56,12 +56,12 @@ def main():
         
         if accuracy > best_accuracy:
             best_accuracy = accuracy
-            torch.save(model.state_dict(), f'bert_best_accuracy_model.pth')
+            torch.save(model.state_dict(), f'roberta_best_accuracy_model.pth')
             print(f"Saved best accuracy model with accuracy: {best_accuracy:.4f}")
         
         if f1 > best_f1:
             best_f1 = f1
-            torch.save(model.state_dict(), f'bert_best_f1_model.pth')
+            torch.save(model.state_dict(), f'roberta_best_f1_model.pth')
             print(f"Saved best F1 model with F1 score: {best_f1:.4f}")
             
     accuracy, precision, recall, f1, topk = evaluate(model, test_dataloader, device)
@@ -72,7 +72,7 @@ def main():
     print(f"Right Answer in Top 3: {topk:.4f}")
 
 
-train_dataloader = load_train(bert_tokenize_function)
-val_dataloader = load_val(bert_tokenize_function)
-test_dataloader = load_test(bert_tokenize_function)
+train_dataloader = load_train(roberta_tokenize_function)
+val_dataloader = load_val(roberta_tokenize_function)
+test_dataloader = load_test(roberta_tokenize_function)
 main()
