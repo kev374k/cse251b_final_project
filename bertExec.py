@@ -64,7 +64,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=True, batch_size=8)
 
 
 # # # LOAD TEST # # #
-df = pd.read_csv('data/dev.tsv', sep='\t', header=None)
+df = pd.read_csv('data/test.tsv', sep='\t', header=None)
 df = df.drop(df.columns[2], axis=1)
 
 newrows = [] # ONLY HANDLES ROWS WITH 1 EMOTION. COMMENTED CODE ADDS NEW VALIDATION ROWS FOR MULTIPLE EMOTIONS
@@ -91,6 +91,8 @@ test_dataloader = DataLoader(test_dataset, shuffle=True, batch_size=8)
 def evaluate(model, dataloader, device):
     model.eval()
     total_correct = 0
+    total_correct_topk = 0
+    totalPredCount = 0
     total_labels = []
     total_preds = []
 
@@ -103,6 +105,12 @@ def evaluate(model, dataloader, device):
             outputs = model(input_ids, attention_mask=attention_mask)
             logits = outputs.logits
             _, predicted = torch.max(logits, dim=1)
+            
+            _, topk_predicted = torch.topk(logits, k=3, dim=1)
+            for i in range(len(labels)):
+                totalPredCount += 1
+                if labels[i] in topk_predicted[i]:
+                    total_correct_topk += 1
 
             total_correct += (predicted == labels).sum().item()
             total_labels.extend(labels.cpu().numpy())
@@ -112,8 +120,9 @@ def evaluate(model, dataloader, device):
     precision = precision_score(total_labels, total_preds, average='macro')
     recall = recall_score(total_labels, total_preds, average='macro')
     f1 = f1_score(total_labels, total_preds, average='macro')
+    topk = total_correct_topk/totalPredCount
 
-    return accuracy, precision, recall, f1
+    return accuracy, precision, recall, f1, topk
 
 
 # # # MAIN # # #
@@ -152,11 +161,12 @@ for epoch in range(3):
 
     model.eval()
     
-    accuracy, precision, recall, f1 = evaluate(model, val_dataloader, device)
+    accuracy, precision, recall, f1, topk = evaluate(model, val_dataloader, device)
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
     print(f"F1 Score: {f1:.4f}")
+    print(f"Right Answer in Top 3: {topk:.4f}")
     
     if accuracy > best_accuracy:
         best_accuracy = accuracy
@@ -168,8 +178,9 @@ for epoch in range(3):
         torch.save(model.state_dict(), f'best_f1_model.pth')
         print(f"Saved best F1 model with F1 score: {best_f1:.4f}")
         
-accuracy, precision, recall, f1 = evaluate(model, test_dataloader, device)
+accuracy, precision, recall, f1, topk = evaluate(model, test_dataloader, device)
 print(f"Accuracy: {accuracy:.4f}")
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")
 print(f"F1 Score: {f1:.4f}")
+print(f"Right Answer in Top 3: {topk:.4f}")
