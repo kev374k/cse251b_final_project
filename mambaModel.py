@@ -19,9 +19,8 @@ class MambaModel(nn.Module):
     self.target_size = target_size
     self.dropout = nn.Dropout(drop_rate)
     self.classify = Classifier(embed_dim, hidden_dim, target_size)
-    self.encoder = AutoModelForCausalLM.from_pretrained("state-spaces/mamba-130m-hf")
+    self.encoder = AutoModelForCausalLM.from_pretrained("state-spaces/mamba-130m-hf", use_mambapy=True)
     self.encoder.resize_token_embeddings(len(self.tokenizer))
-    self.encoder.use_mambapy = True
     
     # Apply LoRA to self.encoder
     peft_config = LoraConfig(
