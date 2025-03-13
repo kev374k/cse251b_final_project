@@ -12,28 +12,32 @@ from transformers import AdamW, get_cosine_schedule_with_warmup, get_linear_sche
 
 from peft import LoraConfig, TaskType, get_peft_model
 
+
+model_path = "state-spaces/mamba-130m-hf" # Mamba 1
+#model_path = "AntonV/mamba2-130m-hf" # Mamba 2
+
 class MambaModel(nn.Module):
-  def __init__(self, tokenizer, embed_dim=768, hidden_dim=10, drop_rate=.1, target_size=28):
+  def __init__(self, tokenizer, embed_dim=768, hidden_dim=768*2, drop_rate=.1, target_size=28):
     super().__init__()
     self.tokenizer = tokenizer
     self.target_size = target_size
     self.dropout = nn.Dropout(drop_rate)
     self.classify = Classifier(embed_dim, hidden_dim, target_size)
-
+    self.encoder = AutoModelForCausalLM.from_pretrained(model_path, use_mambapy=True)
+      
+    '''
     # Get config for quantized model
     quant_config = BitsAndBytesConfig(
-    load_in_4bit=True, # Load model in 4bit
-    bnb_4bit_compute_dtype=torch.bfloat16, # Compute in bfloat16
-    bnb_4bit_use_double_quant=True,
+        load_in_4bit=True, # Load model in 4bit
+        bnb_4bit_compute_dtype= torch.bfloat16, # Compute in bfloat16
+        bnb_4bit_use_double_quant=True,
     )
-
     # Load model with Quantization config
-    self.encoder = AutoModelForCausalLM.from_pretrained("state-spaces/mamba-130m-hf",
+    self.encoder = AutoModelForCausalLM.from_pretrained(model_path,
                                                         quantization_config=quant_config,
                                                         use_mambapy=True,
                                                         device_map="auto")
-    self.encoder.resize_token_embeddings(len(self.tokenizer))
-
+    
     # Apply LoRA to self.encoder
     peft_config = LoraConfig(
         r=8,
@@ -41,7 +45,7 @@ class MambaModel(nn.Module):
         task_type="CAUSAL_LM",
         bias="none"
     )
-    '''
+    self.encoder = get_peft_model(self.encoder, peft_config)
     peft_config = LoraConfig( 
         inference_mode=False, 
         r=15, 
@@ -50,8 +54,9 @@ class MambaModel(nn.Module):
         target_modules='all-linear'
     )
     '''
-    self.encoder = get_peft_model(self.encoder, peft_config)
-
+    
+    self.encoder.resize_token_embeddings(len(self.tokenizer))
+    
   def forward(self, inputs): #, targets
     """
     task1: 
@@ -62,7 +67,8 @@ class MambaModel(nn.Module):
     task3:
         feed the output of the dropout layer to the Classifier which is provided for you.
     """
-    outputs = self.encoder(inputs, output_hidden_states=True)  
+    #with torch.autocast("cuda"):
+    outputs = self.encoder(inputs, output_hidden_states=True)
     cls_token = outputs.hidden_states[-1][:,-1,:]
     dropped_out = self.dropout(cls_token)
     logits = self.classify(dropped_out)
