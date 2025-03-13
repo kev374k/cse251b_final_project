@@ -7,7 +7,7 @@ from torch import nn
 from torch import optim
 from torch.nn import functional as F
 
-from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM, BitsAndBytesConfig
 from transformers import AdamW, get_cosine_schedule_with_warmup, get_linear_schedule_with_warmup
 
 from peft import LoraConfig, TaskType, get_peft_model
@@ -19,9 +19,21 @@ class MambaModel(nn.Module):
     self.target_size = target_size
     self.dropout = nn.Dropout(drop_rate)
     self.classify = Classifier(embed_dim, hidden_dim, target_size)
-    self.encoder = AutoModelForCausalLM.from_pretrained("state-spaces/mamba-130m-hf", use_mambapy=True)
+
+    # Get config for quantized model
+    quant_config = BitsAndBytesConfig(
+    load_in_4bit=True, # Load model in 4bit
+    bnb_4bit_compute_dtype=torch.bfloat16, # Compute in bfloat16
+    bnb_4bit_use_double_quant=True,
+    )
+
+    # Load model with Quantization config
+    self.encoder = AutoModelForCausalLM.from_pretrained("state-spaces/mamba-130m-hf",
+                                                        quantization_config=quant_config,
+                                                        use_mambapy=True,
+                                                        device_map="auto")
     self.encoder.resize_token_embeddings(len(self.tokenizer))
-    
+
     # Apply LoRA to self.encoder
     peft_config = LoraConfig(
         r=8,
