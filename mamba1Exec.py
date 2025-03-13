@@ -6,7 +6,9 @@ from peft import LoraConfig
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from mambaModel import *
 
-mamba_tokenizer = AutoTokenizer.from_pretrained("state-spaces/mamba-130m-hf")
+tokenizer_path = "state-spaces/mamba-130m-hf" # Mamba 1
+#tokenizer_path = "AntonV/mamba2-130m-hf" # Mamba 2
+mamba_tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 mamba_tokenizer.pad_token = mamba_tokenizer.eos_token
 mamba_tokenizer.padding_side = "left" 
 mamba_tokenizer.add_special_tokens({'cls_token': '[CLS]'})
