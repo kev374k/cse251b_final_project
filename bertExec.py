@@ -47,7 +47,7 @@ class BertWithLoRA(BertForSequenceClassification):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier = LoRALinear(config.hidden_size, config.num_labels, rank=8, alpha=1.0)
 
-    def forward(self, input_ids, attention_mask, token_type_ids, labels=None):
+    def forward(self, input_ids, attention_mask, token_type_ids=None, labels=None):
         outputs = self.bert(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
         pooled_output = outputs.pooler_output
         pooled_output = self.dropout(pooled_output)
@@ -81,21 +81,21 @@ val_dataloader = load_val(bert_tokenize_function)
 test_dataloader = load_test(bert_tokenize_function)
 
 # NONE
-model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=28) 
-train_and_eval(model, 'bert', train_dataloader, val_dataloader, test_dataloader)
+# model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=28) 
+# train_and_eval(model, 'bert', train_dataloader, val_dataloader, test_dataloader)
 
 # LORA
 model = BertWithLoRA.from_pretrained('bert-base-uncased', num_labels=28)
 train_and_eval(model, 'Lora', train_dataloader, val_dataloader, test_dataloader)
 
 # QLoRA
-model = BertWithQLoRA.from_pretrained('bert-base-uncased', num_labels=28)
-train_and_eval(model, 'QLora', train_dataloader, val_dataloader, test_dataloader)
+# model = BertWithQLoRA.from_pretrained('bert-base-uncased', num_labels=28)
+# train_and_eval(model, 'QLora', train_dataloader, val_dataloader, test_dataloader)
 
 # QLoRA rank 15
-model = BertWithQLoRAAdjusted.from_pretrained('bert-base-uncased', num_labels=28)
-train_and_eval(model, 'QLoraADJ', train_dataloader, val_dataloader, test_dataloader)
+# model = BertWithQLoRAAdjusted.from_pretrained('bert-base-uncased', num_labels=28)
+# train_and_eval(model, 'QLoraADJ', train_dataloader, val_dataloader, test_dataloader)
 
 # QLoRA and Scheduler
-model = BertWithQLoRAAdjusted.from_pretrained('bert-base-uncased', num_labels=28)
-train_and_eval(model, 'QLoraSCHED', train_dataloader, val_dataloader, test_dataloader)
+# model = BertWithQLoRAAdjusted.from_pretrained('bert-base-uncased', num_labels=28)
+# train_and_eval(model, 'QLoraSCHED', train_dataloader, val_dataloader, test_dataloader)
