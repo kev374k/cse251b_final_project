@@ -53,6 +53,7 @@ class MambaModel(nn.Module):
         lora_dropout=0.1, 
         target_modules='all-linear'
     )
+    print(f'number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad}')
     '''
     
     self.encoder.resize_token_embeddings(len(self.tokenizer))
