@@ -86,7 +86,13 @@ def evaluate(model, dataloader, device):
             labels = batch['emotion'].to(device)
 
             outputs = model(input_ids, attention_mask=attention_mask)
-            loss, logits = outputs
+            
+            if isinstance(outputs, SequenceClassifierOutput):
+                loss = outputs.loss
+                logits = outputs.logits
+            else:
+                loss, logits = outputs
+                
             _, predicted = torch.max(logits, dim=1)
             
             _, topk_predicted = torch.topk(logits, k=3, dim=1)
