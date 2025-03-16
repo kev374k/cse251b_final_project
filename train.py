@@ -1,6 +1,7 @@
 import torch
 import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from transformers.modeling_outputs import SequenceClassifierOutput
 
 
 # # # TRAIN # # #
@@ -28,7 +29,13 @@ def train_and_eval(model, model_name, train_dataloader, val_dataloader, test_dat
                 optimizer.zero_grad()
 
                 outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-                loss, logits = outputs
+                
+                if isinstance(outputs, SequenceClassifierOutput):
+                    loss = outputs.loss
+                    logits = outputs.logits
+                else:
+                    loss, logits = outputs
+                    
 
                 loss.backward()
                 optimizer.step()

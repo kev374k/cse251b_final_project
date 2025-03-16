@@ -85,12 +85,12 @@ test_dataloader = load_test(bert_tokenize_function)
 # train_and_eval(model, 'bert', train_dataloader, val_dataloader, test_dataloader)
 
 # LORA
-model = BertWithLoRA.from_pretrained('bert-base-uncased', num_labels=28)
-train_and_eval(model, 'Lora', train_dataloader, val_dataloader, test_dataloader)
+# model = BertWithLoRA.from_pretrained('bert-base-uncased', num_labels=28)
+# train_and_eval(model, 'Lora', train_dataloader, val_dataloader, test_dataloader)
 
 # QLoRA
-# model = BertWithQLoRA.from_pretrained('bert-base-uncased', num_labels=28)
-# train_and_eval(model, 'QLora', train_dataloader, val_dataloader, test_dataloader)
+model = BertWithQLoRA.from_pretrained('bert-base-uncased', num_labels=28)
+train_and_eval(model, 'QLora', train_dataloader, val_dataloader, test_dataloader)
 
 # QLoRA rank 15
 # model = BertWithQLoRAAdjusted.from_pretrained('bert-base-uncased', num_labels=28)
