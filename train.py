@@ -13,6 +13,8 @@ def train_and_eval(model, model_name, train_dataloader, val_dataloader, test_dat
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
     for epoch in range(3):
         model.train()
@@ -35,6 +37,9 @@ def train_and_eval(model, model_name, train_dataloader, val_dataloader, test_dat
                 pbar.set_postfix(loss=f"{loss.item():.4f}")
         
         print(f'Epoch {epoch+1}, Average Loss: {total_loss / len(train_dataloader)}')
+        
+        if model_name == "QLoraSCHED":
+            scheduler.step()
 
         model.eval()
         
@@ -49,11 +54,6 @@ def train_and_eval(model, model_name, train_dataloader, val_dataloader, test_dat
             best_accuracy = accuracy
             torch.save(model.state_dict(), f'{model_name}_best_accuracy_model.pth')
             print(f"Saved best accuracy model with accuracy: {best_accuracy:.4f}")
-        
-        if f1 > best_f1:
-            best_f1 = f1
-            torch.save(model.state_dict(), f'{model_name}_best_f1_model.pth')
-            print(f"Saved best F1 model with F1 score: {best_f1:.4f}")
             
     accuracy, precision, recall, f1, topk = evaluate(model, test_dataloader, device)
     print(f"Accuracy: {accuracy:.4f}")
