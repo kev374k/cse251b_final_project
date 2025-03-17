@@ -26,7 +26,8 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
-
+    print(f'number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}')
+    
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
