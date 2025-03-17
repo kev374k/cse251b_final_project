@@ -24,7 +24,7 @@ class MambaModel(nn.Module):
     self.dropout = nn.Dropout(drop_rate)
     self.classify = Classifier(embed_dim, hidden_dim, target_size)
     self.encoder = AutoModelForCausalLM.from_pretrained(model_path, use_mambapy=True)
-      
+    self.encoder.resize_token_embeddings(len(self.tokenizer))
     '''
     # Get config for quantized model
     quant_config = BitsAndBytesConfig(
@@ -46,17 +46,8 @@ class MambaModel(nn.Module):
         bias="none"
     )
     self.encoder = get_peft_model(self.encoder, peft_config)
-    peft_config = LoraConfig( 
-        inference_mode=False, 
-        r=15, 
-        lora_alpha=32, 
-        lora_dropout=0.1, 
-        target_modules='all-linear'
-    )
     print(f'number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad}')
     '''
-    
-    self.encoder.resize_token_embeddings(len(self.tokenizer))
     
   def forward(self, inputs): #, targets
     """
