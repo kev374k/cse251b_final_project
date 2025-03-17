@@ -46,7 +46,6 @@ class MambaModel(nn.Module):
         bias="none"
     )
     self.encoder = get_peft_model(self.encoder, peft_config)
-    print(f'number of parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad}')
     '''
     
   def forward(self, inputs): #, targets
