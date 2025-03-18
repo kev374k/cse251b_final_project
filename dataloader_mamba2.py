@@ -27,11 +27,15 @@ def get_dataloader(args, dataset, split='train'):
     
     # Create dataloader with appropriate batch size
     dataloader = DataLoader(
-        dataset, 
-        sampler=sampler, 
-        batch_size=args.batch_size, 
-        collate_fn=collate
-    )
+    dataset,
+    sampler=sampler,
+    batch_size=args.batch_size,  # Adjust based on GPU memory
+    collate_fn=collate,
+    num_workers=16,  # Use 32 workers for 64 CPU cores
+    pin_memory=True,
+    prefetch_factor=2,
+    persistent_workers=True
+)
     
     print(f"Created {split} dataloader with {len(dataloader)} batches (batch size: {args.batch_size})")
     return dataloader
@@ -115,6 +119,7 @@ def prepare_features(args, data, tokenizer, cache_path):
         # Process each example in the split
         for example in progress_bar(examples, total=len(examples)):
             # Tokenize text with appropriate padding for Mamba2 (left padding)
+            tokenizer.padding_side = 'left'
             embed_data = tokenizer(
                 example['text'], 
                 padding='max_length', 

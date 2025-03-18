@@ -36,7 +36,7 @@ def load_tokenizer(args):
     if args.model == 'mamba2':
         # Use the correct tokenizer for Mamba2
         # Mamba-2.8b typically uses the EleutherAI/gpt-neox-20b tokenizer
-        tokenizer_name = "EleutherAI/gpt-neox-20b"
+        tokenizer_name = "AntonV/mamba2-130m-hf"
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         
         # Ensure we have padding token set correctly

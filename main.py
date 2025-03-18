@@ -15,29 +15,27 @@ from torch.optim import AdamW
 from torch.cuda.amp import autocast, GradScaler
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 def mamba_train(args, model, datasets, tokenizer):
-    """Training function for the Mamba2 model."""
+    """Training function for the Mamba2 model with memory optimizations."""
+    
     # Set up loss function based on classification type
     if args.classification_type == 'multi_class':
         criterion = nn.CrossEntropyLoss()
     else:  # multi_label
         criterion = nn.BCEWithLogitsLoss()
     
-    # Setup training dataloader
+    # Setup training dataloader with smaller batch size
     train_dataloader = get_dataloader(args, datasets['train'], split='train')
     val_dataloader = get_dataloader(args, datasets['validation'], split='validation')
     
-    # Prepare optimizer
-    # Use parameter groups to apply different learning rates
-    no_decay = ["bias", "LayerNorm.weight"]
+    # Prepare optimizer with weight decay
     optimizer_grouped_parameters = [
         {
-            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+            "params": [p for n, p in model.named_parameters() if p.requires_grad and not any(nd in n for nd in ["bias", "LayerNorm.weight"])],
             "weight_decay": 0.01,
         },
         {
-            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+            "params": [p for n, p in model.named_parameters() if p.requires_grad and any(nd in n for nd in ["bias", "LayerNorm.weight"])],
             "weight_decay": 0.0,
         },
     ]
@@ -48,21 +46,22 @@ def mamba_train(args, model, datasets, tokenizer):
         eps=args.adam_epsilon
     )
     
-    # Setup scheduler
+    # Setup scheduler with warmup
     total_steps = len(train_dataloader) * args.n_epochs
     scheduler = get_linear_schedule_with_warmup(
         optimizer, 
-        num_warmup_steps=total_steps * 0.1,  # 10% of training for warmup
+        num_warmup_steps=int(total_steps * 0.1),  # 10% of training for warmup
         num_training_steps=total_steps
     )
     
-    # Initialize mixed precision training if enabled
+    # Initialize mixed precision training
     scaler = GradScaler() if args.fp16 else None
     
     # Training loop
     train_accs = []
     eval_accs = []
     global_step = 0
+    best_eval_acc = 0.0
     
     for epoch in range(args.n_epochs):
         print(f"\n{'='*20} Epoch {epoch+1}/{args.n_epochs} {'='*20}")
@@ -70,14 +69,19 @@ def mamba_train(args, model, datasets, tokenizer):
         epoch_loss = 0.0
         epoch_acc = 0.0
         
+        # Use tqdm for progress bar
         for step, batch in progress_bar(enumerate(train_dataloader), total=len(train_dataloader)):
-            # Prepare inputs and move to device
+            # Memory optimization: Clear cache at regular intervals
+            if step % 10 == 0:
+                torch.cuda.empty_cache()
+                
+            # Prepare inputs
             inputs, labels = prepare_inputs(batch)
             
-            # Clear gradients
+            # Zero gradients
             optimizer.zero_grad()
             
-            # Forward pass with mixed precision if enabled
+            # Forward pass with mixed precision
             if args.fp16:
                 with autocast():
                     logits = model(inputs)
@@ -88,8 +92,11 @@ def mamba_train(args, model, datasets, tokenizer):
                 scaler.scale(loss).backward()
                 
                 if (step + 1) % args.gradient_accumulation_steps == 0:
+                    # Gradient clipping
                     scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                    
+                    # Update parameters
                     scaler.step(optimizer)
                     scaler.update()
                     scheduler.step()
@@ -102,7 +109,10 @@ def mamba_train(args, model, datasets, tokenizer):
                 loss.backward()
                 
                 if (step + 1) % args.gradient_accumulation_steps == 0:
+                    # Gradient clipping
                     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                    
+                    # Update parameters
                     optimizer.step()
                     scheduler.step()
                     global_step += 1
@@ -115,11 +125,12 @@ def mamba_train(args, model, datasets, tokenizer):
                 preds = (logits > 0.5).float()
                 acc = (preds == labels).float().mean().item()
             
+            # Track metrics
             epoch_loss += loss.item() * args.gradient_accumulation_steps
             epoch_acc += acc
             
             # Print progress
-            if global_step > 0 and global_step % 50 == 0:
+            if global_step > 0 and global_step % 10 == 0:
                 print(f"Step: {global_step}, Loss: {epoch_loss/(step+1):.4f}, Acc: {epoch_acc/(step+1):.4f}")
         
         # Epoch summary
@@ -134,15 +145,18 @@ def mamba_train(args, model, datasets, tokenizer):
         train_accs.append(avg_train_acc)
         eval_accs.append(eval_acc)
         
-        # Save model checkpoint
-        checkpoint_path = os.path.join(args.save_dir, f"mamba2_checkpoint_epoch_{epoch+1}.pth")
-        torch.save({
-            'epoch': epoch + 1,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': avg_train_loss,
-        }, checkpoint_path)
-        print(f"Model checkpoint saved to {checkpoint_path}")
+        # Save best model checkpoint
+        if eval_acc > best_eval_acc:
+            best_eval_acc = eval_acc
+            checkpoint_path = os.path.join(args.save_dir, f"mamba2_best_model.pth")
+            torch.save({
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': avg_train_loss,
+                'eval_acc': eval_acc,
+            }, checkpoint_path)
+            print(f"New best model saved with eval acc: {eval_acc:.4f}")
     
     # Plot learning curves
     plot_accs(train_accs, eval_accs, os.path.join(args.save_dir, "learning_curves"))
@@ -252,4 +266,67 @@ def main():
     print("All done!")
 
 if __name__ == "__main__":
-    main()
+    # Parse arguments
+    args = params()
+
+    # Set up memory-efficient configurations
+    args.mamba2_model_name = "AntonV/mamba2-130m-hf"  # Use the smaller model
+    args.batch_size = 4  # Reduce batch size for memory efficiency
+    args.max_len = 128  # Reduce sequence length if possible
+    args.gradient_accumulation_steps = 4  # Increase gradient accumulation
+    args.fp16 = True  # Enable mixed precision training
+    args.learning_rate = 2e-5  # Slightly lower learning rate
+    args.freeze_mamba = True  # Freeze the base model to save memory
+
+    # Setup environment
+    args = setup_gpus(args)
+    args = check_directories(args)
+    set_seed(args)
+
+    # Load tokenizer with left padding configuration
+    tokenizer = load_tokenizer(args)
+    tokenizer.padding_side = 'left'  # Ensure left padding
+
+    # Check for cached features
+    cache_results, already_exist = check_cache(args)
+
+    if already_exist:
+        print("Loading features from cache")
+        features = cache_results
+    else:
+        print("Preparing new features")
+        data = load_data()
+        features = prepare_features(args, data, tokenizer, cache_results)
+
+    # Process data into datasets
+    datasets = process_data(args, features, tokenizer)
+
+    # Determine the target size (number of classes)
+    target_size = 28  # GoEmotions has 28 emotions
+
+    # Initialize model
+    if args.model == 'mamba2':
+        print(f"Initializing Mamba2 model from {args.mamba2_model_name}")
+        
+        # Create model with memory optimizations
+        model = Mamba2ScenarioModel(args, tokenizer, target_size).to(device)
+        
+        # Print model summary
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        total_params = sum(p.numel() for p in model.parameters())
+        print(f"Model has {total_params:,} parameters")
+        print(f"Of which {trainable_params:,} are trainable ({trainable_params/total_params:.2%})")
+        
+        # Train or evaluate
+        if args.do_train:
+            print("Starting training")
+            model = mamba_train(args, model, datasets, tokenizer)
+            
+        if args.do_eval:
+            print("Running evaluation")
+            run_eval(args, model, datasets, tokenizer, split='test')
+
+    else:
+        raise ValueError(f"Unsupported model type: {args.model}")
+    
+    print("All done!")

@@ -9,10 +9,12 @@ def params():
                 help="baseline is fine-tuning bert for classification;\n\
                       tune is advanced techiques to fine-tune bert;\n\
                       constast is contrastive learning method")
-    parser.add_argument("--mamba2_model_name", default="state-spaces/mamba-2.8b-hf", type=str,
-                    help="Name or path of the pretrained Mamba2 model")
+    # parser.add_argument("--mamba2_model_name", default="state-spaces/mamba-2.8b-hf", type=str,
+    #                 help="Name or path of the pretrained Mamba2 model")
     # parser.add_argument("--mamba2_model_name", default="state-spaces/mamba-1.4b-hf", type=str,
     #                 help="Name or path of the pretrained Mamba2 model")
+    parser.add_argument("--mamba2_model_name", default="AntonV/mamba2-130m-hf", type=str,
+                help="Name or path of the pretrained Mamba2 model")
     parser.add_argument("--freeze_mamba", action="store_true",
                         help="Whether to freeze the Mamba2 parameters during training")
     parser.add_argument("--classification_type", default="multi_class", type=str,
@@ -41,7 +43,7 @@ def params():
                 help="Whether to run eval on the dev set.")
     
     # Hyperparameters
-    parser.add_argument("--batch-size", default=4, type=int,
+    parser.add_argument("--batch-size", default=8, type=int,
                 help="Batch size per GPU/CPU for training and evaluation.")
     parser.add_argument("--learning-rate", default=5e-5, type=float,
                 help="Model learning rate starting point.")
@@ -55,7 +57,7 @@ def params():
                 help="Epsilon for Adam optimizer.")
     parser.add_argument("--n-epochs", default=5, type=int,
                 help="Total number of training epochs to perform.")
-    parser.add_argument("--max-len", default=512, type=int,
+    parser.add_argument("--max-len", default=256, type=int,
                 help="maximum sequence length to look back")
     parser.add_argument("--lora_rank", type=int, default=8, help="Rank for LoRA fine-tuning")
     parser.add_argument('--loss_type', type=str, default='supcon', choices=['supcon', 'simclr'], 
